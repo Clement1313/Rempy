@@ -1,53 +1,15 @@
 import numpy as np
-from imageio.v3 import imread
-import matplotlib.pyplot as plt
-
 from numba import njit
-
-import heapq
-from typing import Any
-
-from sympy import arg
-
-IMAGE_PATH = "C:\\Users\\Utilisateur\\Desktop\\ING2\\Python\\TP1\\TP1\\TP1\\data\\img.png" # Change the path to point to your image
-MASK_PATH = "C:\\Users\\Utilisateur\\Desktop\\ING2\\Python\\TP1\\TP1\\TP1\\data\\mask.png"
-img = imread(IMAGE_PATH)
-mask = imread(MASK_PATH)
-
-class PQueue:
-    def __init__(self):
-        self.heap = []
-        self.entries = {}
-
-    def push(self, p: float, v: Any):
-        if v in self.entries:
-            self.entries[v][2] = False
-        entry = [p, v, True]
-        self.entries[v] = entry
-        heapq.heappush(self.heap, (p, entry))
-
-
-    def pop(self) -> tuple[float, Any]:
-        while self.heap:
-            p, entry = heapq.heappop(self.heap)
-            if entry[2]: 
-                del self.entries[entry[1]]
-                return p, entry[1]
-        raise IndexError("pop from an empty queue")
-        
-
-    def empty(self) -> bool:
-        return len(self.entries) == 0
-    
+from imageio.v3 import imread
 
 
 @njit
-def propagation2(img, mask):
+def propagation(img: np.ndarray, mask: np.ndarray) -> np.ndarray:
     rows, cols = img.shape
-    D = np.full((rows, cols), 1e10, dtype=np.uint64)
+    D = np.full((rows, cols), 1e10, dtype=np.float64)
 
     max_size = rows * cols * 9
-    h_dist = np.full(max_size, 1e10, dtype=np.uint64)
+    h_dist = np.full(max_size, 1e10, dtype=np.float64)
     h_row  = np.zeros(max_size, dtype=np.int64)
     h_col  = np.zeros(max_size, dtype=np.int64)
     heap_size = 0
@@ -61,8 +23,8 @@ def propagation2(img, mask):
                 h_col[heap_size]  = c
                 heap_size += 1
 
-    dr = np.array([-1, 1, 0, 0, -1, -1, 1,  1], dtype=np.int64)
-    dc = np.array([0,  0, 1,-1, -1,  1,-1,  1], dtype=np.int64)
+    dr = np.array([-1, 1,  0, 0, -1, -1,  1, 1], dtype=np.int64)
+    dc = np.array([ 0, 0,  1, -1, -1,  1, -1, 1], dtype=np.int64)
 
     while heap_size > 0:
         min_idx = 0
@@ -96,7 +58,8 @@ def propagation2(img, mask):
 
     return D
 
-P = propagation2(img, mask)
 
-plt.figure(figsize=(10, 10))
-plt.imshow(P, cmap="inferno")
+def run(img_path: str, mask_path: str) -> np.ndarray:
+    img  = imread(img_path,  mode='L')
+    mask = imread(mask_path, mode='L')
+    return propagation(img, mask)
