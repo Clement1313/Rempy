@@ -1,0 +1,15 @@
+[project]
+name = "frontend"
+version = "0.1.0"
+authors = ["Clément GREGOIRE, Thomas SCCHEEPERS"]
+requires-python = "==3.12.*"
+dependencies = [
+    "dash>=2.18.2",
+    "dash-ag-grid>=33.3.3",
+    "ruff>=0.15.1",
+]
+
+[tool.uv.workspace]
+members = [
+    "project",
+]
