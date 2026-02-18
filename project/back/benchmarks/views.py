@@ -3,7 +3,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import InputImage, Benchmark
-from .serializers import InputImageSerializer, BenchmarkSerializer
+from .serializer import InputImageSerializer, BenchmarkSerializer
 from runner.tasks import run_benchmark  
 
 class InputImageViewSet(viewsets.ModelViewSet):

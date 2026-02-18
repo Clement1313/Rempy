@@ -1,0 +1,48 @@
+services:
+  db:
+    build: ./database
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: rempy
+      POSTGRES_USER: rempy
+      POSTGRES_PASSWORD: rempy
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"          # Utile pour se connecter avec DBeaver/pgAdmin en dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rempy"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  back:
+    build: ./back
+    restart: unless-stopped
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./back:/app                      
+      - ./media:/app/media           
+    ports:
+      - "8000:8000"
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: "dev-secret-key-change-in-prod"
+      POSTGRES_DB: rempy
+      POSTGRES_USER: rempy
+      POSTGRES_PASSWORD: rempy
+      POSTGRES_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy        
+
+  front:
+    build: ./front
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - back
+
+volumes:
+  postgres_data:

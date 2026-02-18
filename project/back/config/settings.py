@@ -91,7 +91,7 @@ DATABASES = {
 
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'  # Là où tu stockes les images uploadées/résultats
+MEDIA_ROOT = BASE_DIR / 'media'  
 
 
 
