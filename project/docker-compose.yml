@@ -42,7 +42,10 @@ services:
     build: ./front
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "8050:8050"
+    volumes:
+      - ./front:/app
+      - ./media:/app/media
     depends_on:
       - back
 

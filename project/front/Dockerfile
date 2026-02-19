@@ -6,7 +6,7 @@ RUN pip install uv
 
 COPY pyproject.toml ./
 
-RUN uv pip install --system dash dash-ag-grid ruff
+RUN uv pip install --system dash dash-ag-grid ruff pandas requests
 
 COPY . .
 
