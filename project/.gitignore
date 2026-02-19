@@ -1,1 +1,6 @@
 .venv
+media/
+back/benchmarks/__pycache__
+back/benchmarks/migrations/
+back/config/
+back/runner
