@@ -3,9 +3,13 @@ import time
 import io
 import numpy as np
 import pandas as pd
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from imageio.v3 import imread
 from PIL import Image as PILImage
 from django.core.files.base import ContentFile
+from scipy import ndimage
 from benchmarks.models import Benchmark, Result
 
 from runner import FastMarching, FastMarchingNumba
@@ -15,13 +19,45 @@ ALGORITHMS = {
     'fast_marching_numba': FastMarchingNumba,
 }
 
-
 def array_to_png(array: np.ndarray) -> bytes:
-    normalized = (array / array.max() * 255).astype(np.uint8)
-    img = PILImage.fromarray(normalized)
+    matplotlib.use('Agg')
+    normalized = array / array.max()
+    
+    colored = cm.inferno(normalized)  
+    colored_uint8 = (colored[:, :, :3] * 255).astype(np.uint8)  
+    
+    img = PILImage.fromarray(colored_uint8)
     buffer = io.BytesIO()
     img.save(buffer, format='PNG')
     return buffer.getvalue()
+
+def generate_mask(img: np.ndarray, threshold_percentile: float = 90) -> np.ndarray:
+    normalized = (img / img.max() * 255).astype(np.uint8)
+    
+    threshold = np.percentile(normalized, threshold_percentile)
+    mask = (normalized >= threshold).astype(np.uint8)
+    
+    for i in range(5):
+        mask = ndimage.binary_opening(mask, structure=np.ones((2, 2))).astype(np.uint8)
+        mask = ndimage.binary_closing(mask, structure=np.ones((3, 3))).astype(np.uint8)
+
+    mask = ndimage.binary_dilation(mask, structure=np.ones((2, 2))).astype(np.uint8)
+    mask = ndimage.binary_opening(mask, structure=np.ones((2, 2))).astype(np.uint8)
+    
+    labeled, num_features = ndimage.label(mask)
+    if num_features == 0:
+        return np.zeros_like(normalized)
+    
+    sizes = ndimage.sum(mask, labeled, range(1, num_features + 1))
+    sorted_indices = np.argsort(sizes)[::-1] + 1
+     
+    new_mask = np.zeros_like(mask)
+    for idx in sorted_indices[:2]:
+        new_mask[labeled == idx] = 1
+    
+    new_mask = ndimage.binary_closing(new_mask, structure=np.ones((5, 5))).astype(np.uint8)
+    
+    return new_mask * 255
 
 
 def load_grayscale(path: str) -> np.ndarray:
@@ -31,7 +67,7 @@ def load_grayscale(path: str) -> np.ndarray:
     return img.astype(np.float64)
 
 
-def run_benchmark(benchmark_id: int) -> dict:
+def run_benchmark(benchmark_id: int, threshold: float = 90.0) -> dict:
     benchmark = Benchmark.objects.get(id=benchmark_id)
     benchmark.status = Benchmark.Status.RUNNING
     benchmark.save()
@@ -41,9 +77,19 @@ def run_benchmark(benchmark_id: int) -> dict:
     try:
         for bench_image in benchmark.images.all():
             img_path  = bench_image.image_file.path
-            mask_path = bench_image.mask_file.path
             img       = load_grayscale(img_path)
-            mask      = load_grayscale(mask_path)
+            mask      = generate_mask(img, threshold_percentile=threshold)
+
+            from django.core.files.base import ContentFile
+            mask_png = PILImage.fromarray(mask.astype(np.uint8))
+            mask_buffer = io.BytesIO()
+            mask_png.save(mask_buffer, format='PNG')
+            mask_buffer.seek(0)
+            from django.core.files.storage import default_storage
+            default_storage.save(
+                f'outputs/mask_{bench_image.id}.png',
+                ContentFile(mask_buffer.read())
+                )
 
             for algo_name, algo_module in ALGORITHMS.items():
                 start   = time.perf_counter()

@@ -62,7 +62,8 @@ class BenchmarkViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         benchmark = serializer.save()
 
-        result_dict = run_benchmark(benchmark.id)
+        threshold = request.data.get('threshold', 90.0)
+        result_dict = run_benchmark(benchmark.id, threshold=float(threshold))
 
         return Response(result_dict, status=201)
     
