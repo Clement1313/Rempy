@@ -1,3 +1,17 @@
-FROM node:20-slim
+FROM python:3.12-slim
+
 WORKDIR /app
-CMD ["echo", "Front not implemented yet"]
+
+RUN pip install uv
+
+COPY pyproject.toml ./
+
+RUN uv pip install --system dash dash-ag-grid ruff
+
+COPY . .
+
+ENV PYTHONPATH=/app
+
+EXPOSE 8050
+
+CMD ["python", "tests_dash.py"]
