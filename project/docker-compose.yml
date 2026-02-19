@@ -9,7 +9,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"          # Utile pour se connecter avec DBeaver/pgAdmin en dev
+      - "5432:5432"          
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U rempy"]
       interval: 5s
@@ -22,7 +22,7 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./back:/app                      
-      - ./media:/app/media           
+      - ./back/media:/app/media           
     ports:
       - "8000:8000"
     environment:
@@ -32,6 +32,8 @@ services:
       POSTGRES_USER: rempy
       POSTGRES_PASSWORD: rempy
       POSTGRES_HOST: db
+      PYTHONUNBUFFERED: 1  
+
     depends_on:
       db:
         condition: service_healthy        
@@ -43,6 +45,16 @@ services:
       - "3000:3000"
     depends_on:
       - back
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+    - db
 
 volumes:
   postgres_data:

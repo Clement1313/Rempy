@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import InputImage, Benchmark, Result
 
 
-class InputImageSerializer(serializers.ModelSerializer):
+class InputSerializer(serializers.ModelSerializer):
     class Meta:
         model  = InputImage
         fields = ['id', 'name', 'image_file', 'mask_file', 'uploaded_at']
@@ -19,7 +19,7 @@ class ResultSerializer(serializers.ModelSerializer):
 
 class BenchmarkSerializer(serializers.ModelSerializer):
     results   = ResultSerializer(many=True, read_only=True)
-    images    = InputImageSerializer(many=True, read_only=True)
+    images    = InputSerializer(many=True, read_only=True)
     image_ids = serializers.PrimaryKeyRelatedField(
         many=True, queryset=InputImage.objects.all(),
         write_only=True, source='images'

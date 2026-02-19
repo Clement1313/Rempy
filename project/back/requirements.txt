@@ -8,3 +8,4 @@ imageio
 numba
 llvmlite
 matplotlib
+pandas
