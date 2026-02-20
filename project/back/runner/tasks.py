@@ -31,7 +31,7 @@ def array_to_png(array: np.ndarray) -> bytes:
     img.save(buffer, format='PNG')
     return buffer.getvalue()
 
-def generate_mask(img: np.ndarray, threshold_percentile: float = 90) -> np.ndarray:
+def generate_mask(img: np.ndarray, threshold_percentile: float = 95.0) -> np.ndarray:
     normalized = (img / img.max() * 255).astype(np.uint8)
     
     threshold = np.percentile(normalized, threshold_percentile)
@@ -67,7 +67,7 @@ def load_grayscale(path: str) -> np.ndarray:
     return img.astype(np.float64)
 
 
-def run_benchmark(benchmark_id: int, threshold: float = 90.0) -> dict:
+def run_benchmark(benchmark_id: int, threshold: float = 95.0) -> dict:
     benchmark = Benchmark.objects.get(id=benchmark_id)
     benchmark.status = Benchmark.Status.RUNNING
     benchmark.save()
