@@ -3,16 +3,36 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import InputImage, Benchmark
 from .serializer import InputSerializer, BenchmarkSerializer
-from runner.tasks import run_benchmark
+from runner.tasks import run_benchmark, generate_mask, load_grayscale, array_to_png
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 import pandas as pd
 import os
-
 
 
 
 class InputImageViewSet(viewsets.ModelViewSet):
     queryset = InputImage.objects.all()
     serializer_class = InputSerializer
+
+    @action(detail=True, methods=['get'])
+    def preview_mask(self, request, pk=None):
+        image = self.get_object()
+        threshold = float(request.query_params.get('threshold', 95.0))
+
+        img  = load_grayscale(image.image_file.path)
+        mask = generate_mask(img, threshold_percentile=threshold)
+
+        png_bytes = array_to_png(mask)
+        mask_path = f'masks/preview_mask_{image.id}_t{int(threshold)}.png'
+        default_storage.save(mask_path, ContentFile(png_bytes))
+
+        return Response({
+            'image_id':   image.id,
+            'threshold':  threshold,
+            'mask_url':   f'/media/{mask_path}',
+        })
+
 
 
 class BenchmarkViewSet(viewsets.ModelViewSet):

@@ -16,7 +16,7 @@ class Benchmark(models.Model):
         PENDING = 'pending', 'En attente'
         RUNNING = 'running', 'En cours'
         DONE    = 'done',    'Terminé'
-        FAILED  = 'failed',  'Échoué'
+        FAILED  = 'failed',  'Echoué'
 
     name       = models.CharField(max_length=80)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -30,7 +30,7 @@ class Benchmark(models.Model):
 class Result(models.Model):
     benchmark      = models.ForeignKey(Benchmark, on_delete=models.CASCADE, related_name='results')
     image          = models.ForeignKey(InputImage, on_delete=models.CASCADE)
-    algorithm      = models.CharField(max_length=50)          
+    algorithm      = models.CharField(max_length=30)          
     output_image   = models.ImageField(upload_to='outputs/', null=True, blank=True)
     execution_time = models.FloatField(help_text="Temps en secondes")
     metrics        = models.JSONField(default=dict)
