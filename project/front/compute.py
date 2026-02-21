@@ -31,5 +31,26 @@ def run_benchmark(image_path):
     return bench_resp.json()
 
 
+def raw_to_single_row(raw):
+    row = {}
+    for entry in raw:
+        algo = entry["algorithm"]
+        if "image" not in row:
+            row["image"] = entry["image"]
+            row["taille"] = entry["taille (px)"]
+            row["pixels"] = entry["pixels"]
+            row["max_distance"] = entry["max_distance"]
+            row["min_distance"] = entry["min_distance"]
+            row["mean_distance"] = entry["mean_distance"]
+            row["output_image"] = entry["output_image"]
+
+        if algo == "fast_marching":
+            row["temps_fast_marching"] = entry["temps (s)"]
+        elif algo == "fast_marching_numba":
+            row["temps_fast_marching_numba"] = entry["temps (s)"]
+
+    return row
+
+
 # res = run_benchmark ('media/inputs/images/img.png')
 # print(res)

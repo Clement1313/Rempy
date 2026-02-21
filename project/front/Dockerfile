@@ -14,4 +14,4 @@ ENV PYTHONPATH=/app
 
 EXPOSE 8050
 
-CMD ["python", "tests_dash.py"]
+CMD ["python", "index.py"]
