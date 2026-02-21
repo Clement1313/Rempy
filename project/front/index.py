@@ -7,6 +7,7 @@ import pandas as pd
 from dash import dash_table
 import stats
 from dash.dependencies import Output, Input, State
+import time
 
 
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
@@ -34,6 +35,10 @@ app.layout = html.Div(
                     [
                         html.H6("Mask"),
                         html.Img(id="mask-image", src=DEFAULT_IMAGE),
+                        dcc.Slider(
+                            0, 100, 5, marks=None, value=50, id="threshold-slider"
+                        ),
+                        html.Div(id="slider-output-container"),
                     ],
                     style={"width": "48%", "display": "inline-block"},
                 ),
@@ -72,12 +77,15 @@ app.layout = html.Div(
     State("current-image-name", "data"),
     State("current-mask-url", "data"),
     State("benchmark-data", "data"),
+    State("threshold-slider", "value"),
 )
-def on_compute(n_clicks, image_name, mask_url, stored_data):
+def on_compute(n_clicks, image_name, mask_url, stored_data, threshold):
     if not n_clicks or n_clicks <= 0:
         return "", stored_data
+    
+    print(mask_url)
 
-    result = compute.run_benchmark(image_name, mask_url)
+    result = compute.run_benchmark(image_name, mask_url, threshold)
 
     children = []
 
@@ -121,10 +129,11 @@ def on_compute(n_clicks, image_name, mask_url, stored_data):
     Output("current-image-name", "data"),
     Output("current-mask-url", "data"),
     Input("upload-image", "contents"),
+    Input("threshold-slider", "value"),
     State("upload-image", "filename"),
     State("image-history", "data"),
 )
-def update_image(contents, filename, history):
+def update_image(contents, threshold, filename, history):
 
     if history is None:
         history = []
@@ -142,7 +151,9 @@ def update_image(contents, filename, history):
     with open(file_path, "wb") as f:
         f.write(decoded)
 
-    mask_resp = compute.compute_mask(file_path)
+    threshold_normalized = threshold / 100.0
+
+    mask_resp = compute.compute_mask(file_path, threshold_normalized)
 
     if isinstance(mask_resp, str):
         return contents, DEFAULT_IMAGE, "Erreur mask", history, file_path, ""
@@ -152,10 +163,10 @@ def update_image(contents, filename, history):
     if not mask_url:
         return contents, DEFAULT_IMAGE, "Mask non généré", history, file_path, ""
 
-    full_mask_url = f"http://localhost:8000{mask_url}"
+    full_mask_url = f"http://localhost:8000{mask_url}?t={int(time.time() * 1000)}"
 
     history.append({"src": contents, "name": filename})
-
+    print(mask_url)
     return (
         contents,
         full_mask_url,
@@ -164,6 +175,7 @@ def update_image(contents, filename, history):
         file_path,
         mask_url,
     )
+
 
 @callback(
     Output("benchmark-table", "columns"),
@@ -177,6 +189,13 @@ def update_table(data):
     columns = [{"name": col, "id": col} for col in df.columns]
     table_data = df.to_dict("records")
     return columns, table_data
+
+
+@callback(
+    Output("slider-output-container", "children"), Input("threshold-slider", "value")
+)
+def update_output(value):
+    return 'You have selected "{}"'.format(value)
 
 
 @callback(Output("scatter-plot", "figure"), Input("benchmark-data", "data"))

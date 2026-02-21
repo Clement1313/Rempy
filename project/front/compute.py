@@ -5,14 +5,14 @@ BASE_URL = "http://back:8000"
 PUBLIC_HOST = "http://localhost:8000"
 
 
-def run_benchmark(image_path, mask_url):
+def run_benchmark(image_path, mask_url, threshold):
     if not image_path or not os.path.exists(image_path):
         return "Error: no image selected or file not found"
     if not mask_url:
         return "Error: no mask"
-    
+
     mask_file_resp = requests.get(f"{BASE_URL}{mask_url}")
-    
+
     if not mask_file_resp.ok:
         return f"Error downloading mask"
 
@@ -35,7 +35,7 @@ def run_benchmark(image_path, mask_url):
 
     bench_resp = requests.post(
         f"{BASE_URL}/api/benchmarks/",
-        json={"name": "default", "image_ids": [image_id]},
+        json={"name": "default", "image_ids": [image_id], "threshold": threshold},
     )
 
     bench_resp.raise_for_status()
