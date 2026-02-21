@@ -17,14 +17,9 @@ def run_benchmark(image_path, mask_url, threshold):
         return f"Error downloading mask"
 
     with open(image_path, "rb") as img:
-        files = {
-            "image_file": img,
-            "mask_file": ("mask.png", mask_file_resp.content),
-        }
-
         resp = requests.post(
             f"{BASE_URL}/api/images/",
-            files=files,
+            files={"image_file": img},
             data={"name": "default"},
         )
 

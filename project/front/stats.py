@@ -13,21 +13,27 @@ from plotly.subplots import make_subplots
 
 # df["size_val"] = df["size"].apply(lambda x: x[0] * x[1])
 
-
 def time_vs_size(df):
+    df_plot = (
+        df.groupby("pixels")[["temps_fast_marching", "temps_fast_marching_numba"]]
+        .mean()
+        .reset_index()
+        .sort_values("pixels")
+    )
+
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
-            x=df["pixels"],
-            y=df["temps_fast_marching"],
+            x=df_plot["pixels"],
+            y=df_plot["temps_fast_marching"],
             mode="lines+markers",
             name="time",
         )
     )
     fig.add_trace(
         go.Scatter(
-            x=df["pixels"],
-            y=df["temps_fast_marching_numba"],
+            x=df_plot["pixels"],
+            y=df_plot["temps_fast_marching_numba"],
             mode="lines+markers",
             name="time_opti",
         )

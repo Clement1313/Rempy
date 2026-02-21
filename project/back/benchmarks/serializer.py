@@ -5,7 +5,7 @@ from .models import InputImage, Benchmark, Result
 class InputSerializer(serializers.ModelSerializer):
     class Meta:
         model  = InputImage
-        fields = ['id', 'name', 'image_file', 'mask_file', 'uploaded_at']
+        fields = ['id', 'name', 'image_file', 'uploaded_at']
 
 
 class ResultSerializer(serializers.ModelSerializer):
