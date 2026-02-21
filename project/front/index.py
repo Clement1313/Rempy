@@ -83,8 +83,6 @@ def on_compute(n_clicks, image_name, mask_url, stored_data, threshold):
     if not n_clicks or n_clicks <= 0:
         return "", stored_data
     
-    print(mask_url)
-
     result = compute.run_benchmark(image_name, mask_url, threshold)
 
     children = []
@@ -166,7 +164,6 @@ def update_image(contents, threshold, filename, history):
     full_mask_url = f"http://localhost:8000{mask_url}?t={int(time.time() * 1000)}"
 
     history.append({"src": contents, "name": filename})
-    print(mask_url)
     return (
         contents,
         full_mask_url,
@@ -191,11 +188,11 @@ def update_table(data):
     return columns, table_data
 
 
-@callback(
-    Output("slider-output-container", "children"), Input("threshold-slider", "value")
-)
-def update_output(value):
-    return 'You have selected "{}"'.format(value)
+# @callback(
+#     Output("slider-output-container", "children"), Input("threshold-slider", "value")
+# )
+# def update_output(value):
+#     return 'You have selected "{}"'.format(value)
 
 
 @callback(Output("scatter-plot", "figure"), Input("benchmark-data", "data"))
