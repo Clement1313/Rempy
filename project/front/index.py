@@ -23,7 +23,20 @@ app.layout = html.Div(
         ),
         html.Div(
             [
-                html.Img(id="display-image", src=DEFAULT_IMAGE),
+                html.Div(
+                    [
+                        html.H6("Image originale"),
+                        html.Img(id="display-image", src=DEFAULT_IMAGE),
+                    ],
+                    style={"width": "48%", "display": "inline-block"},
+                ),
+                html.Div(
+                    [
+                        html.H6("Mask"),
+                        html.Img(id="mask-image", src=DEFAULT_IMAGE),
+                    ],
+                    style={"width": "48%", "display": "inline-block"},
+                ),
                 html.Div(id="image-filename"),
             ]
         ),
@@ -31,6 +44,7 @@ app.layout = html.Div(
         html.Div(id="compute-output"),
         dcc.Store(id="image-history", data=[]),
         dcc.Store(id="current-image-name", data=""),
+        dcc.Store(id="current-mask-url", data=""),
         html.Hr(),
         html.Div(id="history-list"),
         dcc.Store(id="benchmark-data", data=[]),
@@ -56,13 +70,14 @@ app.layout = html.Div(
     Output("benchmark-data", "data"),
     Input("compute-btn", "n_clicks"),
     State("current-image-name", "data"),
+    State("current-mask-url", "data"),
     State("benchmark-data", "data"),
 )
-def on_compute(n_clicks, image_name, stored_data):
+def on_compute(n_clicks, image_name, mask_url, stored_data):
     if not n_clicks or n_clicks <= 0:
         return "", stored_data
 
-    result = compute.run_benchmark(image_name)
+    result = compute.run_benchmark(image_name, mask_url)
 
     children = []
 
@@ -100,32 +115,55 @@ def on_compute(n_clicks, image_name, stored_data):
 
 @callback(
     Output("display-image", "src"),
+    Output("mask-image", "src"),
     Output("image-filename", "children"),
     Output("image-history", "data"),
     Output("current-image-name", "data"),
+    Output("current-mask-url", "data"),
     Input("upload-image", "contents"),
     State("upload-image", "filename"),
     State("image-history", "data"),
 )
 def update_image(contents, filename, history):
+
     if history is None:
         history = []
-    if contents is not None:
-        upload_dir = "media/uploads"
-        os.makedirs(upload_dir, exist_ok=True)
 
-        content_type, content_string = contents.split(",")
-        decoded = base64.b64decode(content_string)
+    if contents is None:
+        return DEFAULT_IMAGE, DEFAULT_IMAGE, "", history, "", ""
 
-        file_path = os.path.join(upload_dir, filename)
-        with open(file_path, "wb") as f:
-            f.write(decoded)
+    upload_dir = "media/uploads"
+    os.makedirs(upload_dir, exist_ok=True)
 
-        history.append({"src": contents, "name": filename})
-        return contents, html.H5(filename), history, file_path
-    else:
-        return DEFAULT_IMAGE, "", history, ""
+    content_type, content_string = contents.split(",")
+    decoded = base64.b64decode(content_string)
 
+    file_path = os.path.join(upload_dir, filename)
+    with open(file_path, "wb") as f:
+        f.write(decoded)
+
+    mask_resp = compute.compute_mask(file_path)
+
+    if isinstance(mask_resp, str):
+        return contents, DEFAULT_IMAGE, "Erreur mask", history, file_path, ""
+
+    mask_url = mask_resp.get("mask_url")
+
+    if not mask_url:
+        return contents, DEFAULT_IMAGE, "Mask non généré", history, file_path, ""
+
+    full_mask_url = f"http://localhost:8000{mask_url}"
+
+    history.append({"src": contents, "name": filename})
+
+    return (
+        contents,
+        full_mask_url,
+        html.H5(filename),
+        history,
+        file_path,
+        mask_url,
+    )
 
 @callback(
     Output("benchmark-table", "columns"),

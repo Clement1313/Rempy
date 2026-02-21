@@ -5,27 +5,38 @@ BASE_URL = "http://back:8000"
 PUBLIC_HOST = "http://localhost:8000"
 
 
-def run_benchmark(image_path):
+def run_benchmark(image_path, mask_url):
     if not image_path or not os.path.exists(image_path):
         return "Error: no image selected or file not found"
+    if not mask_url:
+        return "Error: no mask"
+    
+    mask_file_resp = requests.get(f"{BASE_URL}{mask_url}")
+    
+    if not mask_file_resp.ok:
+        return f"Error downloading mask"
 
-    mask_path = "media/inputs/masks/mask.png"
-    if not os.path.exists(mask_path):
-        return f"Error: mask not found at {mask_path}"
+    with open(image_path, "rb") as img:
+        files = {
+            "image_file": img,
+            "mask_file": ("mask.png", mask_file_resp.content),
+        }
 
-    with open(image_path, "rb") as img, open(mask_path, "rb") as mask:
-        files = {"image_file": img, "mask_file": mask}
-        data = {"name": "default"}
+        resp = requests.post(
+            f"{BASE_URL}/api/images/",
+            files=files,
+            data={"name": "default"},
+        )
 
-        resp = requests.post(f"{BASE_URL}/api/images/", files=files, data=data)
     if not resp.ok:
         return f"Error {resp.status_code}: {resp.text}"
 
     image_id = resp.json()["id"]
 
-    bench_payload = {"name": f"default", "image_ids": [image_id]}
-
-    bench_resp = requests.post(f"{BASE_URL}/api/benchmarks/", json=bench_payload)
+    bench_resp = requests.post(
+        f"{BASE_URL}/api/benchmarks/",
+        json={"name": "default", "image_ids": [image_id]},
+    )
 
     bench_resp.raise_for_status()
     return bench_resp.json()
@@ -52,5 +63,28 @@ def raw_to_single_row(raw):
     return row
 
 
-# res = run_benchmark ('media/inputs/images/img.png')
+def compute_mask(image_path, threshold=0.5):
+    if not image_path or not os.path.exists(image_path):
+        return "Error: no image selected or file not found"
+
+    with open(image_path, "rb") as img:
+        files = {"image_file": img}
+        data = {"name": "default"}
+        resp = requests.post(f"{BASE_URL}/api/images/", files=files, data=data)
+    if not resp.ok:
+        return f"Error {resp.status_code}: {resp.text}"
+
+    image_id = resp.json().get("id")
+    if not image_id:
+        return "Error: No image id returned"
+
+    threshold_percent = int(threshold * 100)
+    url = f"{BASE_URL}/api/images/{image_id}/preview_mask/?threshold={threshold_percent}"
+    mask_resp = requests.get(url)
+    if not mask_resp.ok:
+        return f"Error {mask_resp.status_code}: {mask_resp.text}"
+
+    return mask_resp.json()
+
+# res = compute_mask('media/inputs/images/img.png')
 # print(res)
