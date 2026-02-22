@@ -21,7 +21,7 @@ def time_vs_size(df):
             x=df["pixels"],
             y=df["temps_fast_marching"],
             mode="lines+markers",
-            name="time",
+            name="time classic",
         )
     )
     fig.add_trace(
@@ -29,7 +29,7 @@ def time_vs_size(df):
             x=df["pixels"],
             y=df["temps_fast_marching_numba"],
             mode="lines+markers",
-            name="time_opti",
+            name="time numba",
         )
     )
     fig.update_layout(
