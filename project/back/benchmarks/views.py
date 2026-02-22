@@ -1,6 +1,8 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
+from django.conf import settings
 from .models import InputImage, Benchmark
 from .serializer import InputSerializer, BenchmarkSerializer
 from runner.tasks import run_benchmark, generate_mask, load_grayscale, array_to_png
@@ -124,3 +126,33 @@ class BenchmarkViewSet(viewsets.ModelViewSet):
         benchmark   = self.get_object()
         result_dict = run_benchmark(benchmark.id)
         return Response(result_dict)
+
+    @action(detail=False, methods=['post'])
+    def batch(self, request):
+        threshold = float(request.data.get('threshold', 95.0))
+        batch_dir = settings.BASE_DIR / 'media' / 'inputs' / 'images_prédef'
+        
+        image_paths = [
+            str(batch_dir / 'img1.png'),
+            str(batch_dir / 'img2.png'),
+            str(batch_dir / 'img3.png'),
+        ]   
+    
+        results = []
+        for path in image_paths:
+            if not os.path.exists(path):
+                continue
+        
+            image = InputImage.objects.create(
+                name=os.path.basename(path),
+                image_file=path
+            )
+        
+            benchmark = Benchmark.objects.create(name='batch')
+            benchmark.images.add(image)
+            benchmark.save()
+        
+            result = run_benchmark(benchmark.id, threshold=threshold)
+            results.append(result)
+    
+        return Response(results, status=201)    

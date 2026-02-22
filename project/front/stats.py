@@ -38,6 +38,7 @@ def time_vs_size(df):
             name="time_opti",
         )
     )
+    # AJOUT THOMAS
     fig.update_layout(
         xaxis_title="Size (number of pixel)",
         yaxis_title="Time",

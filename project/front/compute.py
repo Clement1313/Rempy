@@ -16,6 +16,7 @@ def run_benchmark(image_path, mask_url, threshold):
     if not mask_file_resp.ok:
         return f"Error downloading mask"
 
+    # Modif THOMAS
     with open(image_path, "rb") as img:
         resp = requests.post(
             f"{BASE_URL}/api/images/",
@@ -80,6 +81,16 @@ def compute_mask(image_path, threshold=0.5):
         return f"Error {mask_resp.status_code}: {mask_resp.text}"
 
     return mask_resp.json()
+
+
+def run_batch(threshold):
+    resp = requests.post(
+        f"{BASE_URL}/api/benchmarks/batch/",
+        json={"threshold": threshold}
+    )
+    if not resp.ok:
+        return f"Error {resp.status_code}: {resp.text}"
+    return resp.json()
 
 # res = compute_mask('media/inputs/images/img.png')
 # print(res)

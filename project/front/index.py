@@ -48,6 +48,8 @@ app.layout = html.Div(
         ),
         html.Button("Compute", id="compute-btn", n_clicks=0),
         html.Div(id="compute-output"),
+        html.Button("Batch Compute", id="batch-btn", n_clicks=0),
+        html.Div(id="batch-output"),
         dcc.Store(id="image-history", data=[]),
         dcc.Store(id="current-image-name", data=""),
         dcc.Store(id="current-mask-url", data=""),
@@ -131,8 +133,8 @@ def on_compute(n_clicks, image_name, mask_url, stored_data, threshold):
     Input("threshold-slider", "value"),
     State("upload-image", "filename"),
     State("image-history", "data"),
-    State("current-image-name", "data"),  
-    State("display-image", "src"),         
+    State("current-image-name", "data"),  # AJOUT THOMAS
+    State("display-image", "src"),        # AJOUT THOMAS 
 )
 
 def update_image(contents, threshold, filename, history, current_image_name, current_display_src):
@@ -157,8 +159,8 @@ def update_image(contents, threshold, filename, history, current_image_name, cur
         full_mask_url = f"http://localhost:8000{mask_url}?t={int(time.time() * 1000)}"
         return no_update, full_mask_url, no_update, history, current_image_name, mask_url
 
-    if contents is None:
-        return DEFAULT_IMAGE, DEFAULT_IMAGE, "", history, "", ""
+    if contents is None:# AJOUT THOMAS
+        return DEFAULT_IMAGE, DEFAULT_IMAGE, "", history, "", ""# AJOUT THOMAS
 
     upload_dir = "media/uploads"
     os.makedirs(upload_dir, exist_ok=True)
@@ -218,6 +220,43 @@ def compute_bar_graph(benchmark_data):
         return
     df = pd.DataFrame(benchmark_data)
     return stats.bar_chart_time(df)
+
+@callback(
+    Output("batch-output", "children"),
+    Output("benchmark-data", "data", allow_duplicate=True),
+    Input("batch-btn", "n_clicks"),
+    State("benchmark-data", "data"),
+    State("threshold-slider", "value"),
+    prevent_initial_call=True,
+)
+
+def on_batch(n_clicks, stored_data, threshold):
+    if not n_clicks:
+        return "", stored_data
+
+    results = compute.run_batch(threshold)
+    if isinstance(results, str):
+        return results, stored_data
+
+    children = []
+    if stored_data is None:
+        stored_data = []
+
+    for result in results:
+        raw_entries = result.get("raw", [])
+        
+        for entry in raw_entries:
+            url = entry.get("output_image")
+            if url:
+                children.append(html.Img(
+                    src=f"http://localhost:8000{url}",
+                    style={"height": "200px", "margin": "5px"}
+                ))
+        
+        row = compute.raw_to_single_row(raw_entries)
+        stored_data.append(row)
+
+    return children, stored_data
 
 
 if __name__ == "__main__":
