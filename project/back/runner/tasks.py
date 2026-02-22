@@ -12,6 +12,7 @@ from django.core.files.base import ContentFile
 from scipy import ndimage
 from benchmarks.models import Benchmark, Result
 
+
 from runner import FastMarching, FastMarchingNumba
 
 ALGORITHMS = {
@@ -128,6 +129,8 @@ def run_benchmark(benchmark_id: int, threshold: float = 95.0) -> dict:
                     'mean_distance':  round(float(D.mean()), 4),
                     'min_distance':   float(D.min()),
                     'output_image':   result.output_image.url,
+                    'input_image':    bench_image.image_file.url,
+
                 })
 
         benchmark.status = Benchmark.Status.DONE
@@ -163,3 +166,11 @@ def run_benchmark(benchmark_id: int, threshold: float = 95.0) -> dict:
         'table':          df_pivot.to_dict(orient='records'),  
         'raw':            df.to_dict(orient='records'),        
     }
+
+def _warmup_numba():
+    dummy_img  = np.ones((10, 10), dtype=np.float64)
+    dummy_mask = np.zeros((10, 10), dtype=np.float64)
+    dummy_mask[5, 5] = 1.0
+    FastMarchingNumba.propagation(dummy_img, dummy_mask)
+
+_warmup_numba() 

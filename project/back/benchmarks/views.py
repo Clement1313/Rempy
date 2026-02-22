@@ -131,28 +131,32 @@ class BenchmarkViewSet(viewsets.ModelViewSet):
     def batch(self, request):
         threshold = float(request.data.get('threshold', 95.0))
         batch_dir = settings.BASE_DIR / 'media' / 'inputs' / 'images_prédef'
-        
-        image_paths = [
-            str(batch_dir / 'img1.png'),
-            str(batch_dir / 'img2.png'),
-            str(batch_dir / 'img3.png'),
-        ]   
     
+        image_paths = [
+            str(batch_dir / 'image1.png'),
+            str(batch_dir / 'image2.png'),
+            str(batch_dir / 'image3.png'),
+            str(batch_dir / 'image4.png'),
+
+        ]
+
         results = []
         for path in image_paths:
             if not os.path.exists(path):
                 continue
-        
+
+            relative_path = os.path.relpath(path, str(settings.MEDIA_ROOT))
+
             image = InputImage.objects.create(
                 name=os.path.basename(path),
-                image_file=path
+                image_file=relative_path  
             )
-        
+
             benchmark = Benchmark.objects.create(name='batch')
             benchmark.images.add(image)
             benchmark.save()
-        
+
             result = run_benchmark(benchmark.id, threshold=threshold)
             results.append(result)
-    
-        return Response(results, status=201)    
+
+        return Response(results, status=201)

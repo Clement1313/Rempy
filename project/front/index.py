@@ -32,8 +32,20 @@ app.layout = html.Div(
             ),
             style={"textAlign": "center", "marginBottom": "30px"},
         ),
+        html.Div(
+            [
+                html.Label("Threshold", style={"fontWeight": "bold"}),
+                dcc.Slider(
+                    0, 100, 5,
+                    value=50,
+                    id="threshold-slider",
+                    marks={0: "0", 25: "25", 50: "50", 75: "75", 100: "100"},
+                ),
+            ],
+            style={"width": "50%", "margin": "auto", "marginBottom": "30px"},
+        ),
+
         html.Button("Batch Compute", id="batch-btn", n_clicks=0),
-        html.Div(id="batch-output"),
 
         html.Div(
             id="image-section",
@@ -66,13 +78,6 @@ app.layout = html.Div(
                                         "boxShadow": "0px 4px 12px rgba(0,0,0,0.1)",
                                         "marginBottom": "15px",
                                     },
-                                ),
-                                dcc.Slider(
-                                    0,
-                                    100,
-                                    5,
-                                    value=50,
-                                    id="threshold-slider",
                                 ),
                             ],
                             style={"width": "48%"},
@@ -131,6 +136,8 @@ app.layout = html.Div(
             ],
             style={"marginTop": "40px"},
         ),
+
+        html.Div(id="batch-output"), 
 
         html.Div(
             id="graphs-section",
@@ -296,12 +303,12 @@ def compute_bar_graph(benchmark_data):
 @callback(
     Output("batch-output", "children"),
     Output("benchmark-data", "data", allow_duplicate=True),
+    Output("graphs-section", "style", allow_duplicate=True),    
     Input("batch-btn", "n_clicks"),
     State("benchmark-data", "data"),
     State("threshold-slider", "value"),
     prevent_initial_call=True,
 )
-
 def on_batch(n_clicks, stored_data, threshold):
     if not n_clicks:
         return "", stored_data
@@ -316,19 +323,45 @@ def on_batch(n_clicks, stored_data, threshold):
 
     for result in results:
         raw_entries = result.get("raw", [])
+
+        original_url = result.get("original_image")  
         
-        for entry in raw_entries:
-            url = entry.get("output_image")
-            if url:
-                children.append(html.Img(
-                    src=f"http://localhost:8000{url}",
-                    style={"height": "200px", "margin": "5px"}
-                ))
-        
+        numba_entry = next(
+            (e for e in raw_entries if e.get("algorithm") == "fast_marching_numba"),
+            None
+        )
+
+        if numba_entry:
+            output_url = numba_entry.get("output_image")
+            image_name = numba_entry.get("image")
+            input_url  = numba_entry.get("input_image")  
+
+            t = int(time.time() * 1000)
+
+            children.append(html.Div([
+                html.P(image_name, style={"textAlign": "center", "fontWeight": "bold"}),
+                html.Div([
+                    html.Div([
+                        html.P("Original", style={"textAlign": "center"}),
+                        html.Img(
+                            src=f"http://localhost:8000{input_url}?t={t}",  
+                            style={"height": "180px", "margin": "5px"}
+                        ),
+                    ]),
+                    html.Div([
+                        html.P("Fast Marching Numba", style={"textAlign": "center"}),
+                        html.Img(
+                            src=f"http://localhost:8000{output_url}",
+                            style={"height": "180px", "margin": "5px"}
+                        ),
+                    ]),
+                ], style={"display": "flex", "gap": "10px"}),
+            ], style={"marginBottom": "20px"}))
+
         row = compute.raw_to_single_row(raw_entries)
         stored_data.append(row)
 
-    return children, stored_data
+    return children, stored_data, {"display": "flex", "justifyContent": "space-between"}
 
 
 if __name__ == "__main__":
