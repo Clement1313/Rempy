@@ -1,6 +1,9 @@
 .venv
-media/
+media/outputs
+media/masks
+media/inputs/images
+media/inputs/masks
 back/benchmarks/__pycache__
 back/benchmarks/migrations/
 back/config/
-back/runner
+back/runner/__pycache__
